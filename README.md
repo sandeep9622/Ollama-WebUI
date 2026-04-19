@@ -30,7 +30,7 @@ A modern, responsive web interface for interacting with [Ollama](https://ollama.
 
 1. **Clone the repository** (or download the files):
    ```bash
-   git clone https://github.com/yourusername/Ollama-WebUI.git
+   git clone https://github.com/sandeep9622/Ollama-WebUI.git
    cd Ollama-WebUI
    ```
 
