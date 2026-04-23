@@ -193,6 +193,49 @@ function renderMessages() {
     chatBox.scrollTop = chatBox.scrollHeight;
 }
 
+function parseThinkingAndContent(text) {
+    const thinkingMatch = text.match(/<(?:thinking|think)>(.*?)<\/(?:thinking|think)>/is);
+    if (thinkingMatch) {
+        const thinking = thinkingMatch[1].trim();
+        const content = text.replace(thinkingMatch[0], '').trim();
+        return { thinking, content };
+    }
+    return { thinking: null, content: text };
+}
+
+function createThinkingElement(thinkingText) {
+    const section = document.createElement('div');
+    section.className = 'thinking-section';
+    
+    const header = document.createElement('div');
+    header.className = 'thinking-header';
+    
+    const toggle = document.createElement('span');
+    toggle.className = 'thinking-toggle';
+    toggle.textContent = '▼';
+    
+    const title = document.createElement('span');
+    title.className = 'thinking-title';
+    title.textContent = '💭 Model Thinking';
+    
+    header.appendChild(toggle);
+    header.appendChild(title);
+    
+    const content = document.createElement('div');
+    content.className = 'thinking-content';
+    content.innerHTML = marked.parse(thinkingText);
+    
+    section.appendChild(header);
+    section.appendChild(content);
+    
+    header.addEventListener('click', () => {
+        toggle.classList.toggle('collapsed');
+        content.classList.toggle('collapsed');
+    });
+    
+    return section;
+}
+
 function appendMessageToDOM(role, text, timestamp) {
     const div = document.createElement('div');
     div.className = `p-3 sm:p-4 rounded-xl max-w-[95%] sm:max-w-[85%] ${
@@ -208,13 +251,21 @@ function appendMessageToDOM(role, text, timestamp) {
 
     const contentDiv = document.createElement('div');
     contentDiv.className = 'message-content';
+    
     if (role === 'assistant') {
-        contentDiv.innerHTML = text === '...' ? '' : marked.parse(text);
+        const { thinking, content } = parseThinkingAndContent(text);
+        
+        if (thinking) {
+            const thinkingEl = createThinkingElement(thinking);
+            div.appendChild(thinkingEl);
+        }
+        
+        contentDiv.innerHTML = content === '...' ? '' : marked.parse(content);
     } else {
         contentDiv.innerText = text;
     }
+    
     div.appendChild(contentDiv);
-
     messageFeed.appendChild(div);
     chatBox.scrollTop = chatBox.scrollHeight;
     return div;
@@ -391,6 +442,7 @@ async function sendMessage() {
         let buffer = '';
         let evalCount = 0;
         let evalDuration = 0;
+        let thinkingDisplayed = false;
 
         while (true) {
             const { done, value } = await reader.read();
@@ -410,7 +462,17 @@ async function sendMessage() {
                     if (json.message?.content) {
                         fullResponse += json.message.content;
                         if (aiContent) {
-                            aiContent.innerHTML = marked.parse(fullResponse);
+                            const { thinking, content } = parseThinkingAndContent(fullResponse);
+                            
+                            // Add thinking section if found and not yet displayed
+                            if (thinking && !thinkingDisplayed) {
+                                const thinkingEl = createThinkingElement(thinking);
+                                aiDiv.insertBefore(thinkingEl, aiContent);
+                                thinkingDisplayed = true;
+                            }
+                            
+                            // Update main content
+                            aiContent.innerHTML = marked.parse(content);
                         }
                         chatBox.scrollTop = chatBox.scrollHeight;
                     }
@@ -433,7 +495,19 @@ async function sendMessage() {
                 const json = JSON.parse(buffer);
                 if (json.message?.content) {
                     fullResponse += json.message.content;
-                    if (aiContent) aiContent.innerHTML = marked.parse(fullResponse);
+                    if (aiContent) {
+                        const { thinking, content } = parseThinkingAndContent(fullResponse);
+                        
+                        // Add thinking section if found and not yet displayed
+                        if (thinking && !thinkingDisplayed) {
+                            const thinkingEl = createThinkingElement(thinking);
+                            aiDiv.insertBefore(thinkingEl, aiContent);
+                            thinkingDisplayed = true;
+                        }
+                        
+                        // Update main content
+                        aiContent.innerHTML = marked.parse(content);
+                    }
                 }
                 // Track metrics from final response
                 if (json.eval_count) {

@@ -66,6 +66,63 @@ pre code { background: none; padding: 0; }
     40%           { opacity: 1;   transform: scale(1); }
 }
 
+/* ── Thinking section ──────────────────────────────────────────────────────── */
+.thinking-section {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 0.5rem;
+    margin: 0.5rem 0;
+    overflow: hidden;
+}
+
+.thinking-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    cursor: pointer;
+    background: rgba(59, 130, 246, 0.15);
+    user-select: none;
+    transition: background 0.2s;
+}
+
+.thinking-header:hover {
+    background: rgba(59, 130, 246, 0.25);
+}
+
+.thinking-toggle {
+    display: inline-block;
+    transition: transform 0.2s;
+    color: #3b82f6;
+    font-size: 0.9rem;
+    width: 1.2rem;
+    text-align: center;
+}
+
+.thinking-toggle.collapsed {
+    transform: rotate(-90deg);
+}
+
+.thinking-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #3b82f6;
+    flex: 1;
+}
+
+.thinking-content {
+    padding: 1rem;
+    max-height: 400px;
+    overflow-y: auto;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #d1d5db;
+}
+
+.thinking-content.collapsed {
+    display: none;
+}
+
 /* ── Settings panel ────────────────────────────────────────────────────────── */
 .settings-panel {
     display: none;
