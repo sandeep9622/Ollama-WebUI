@@ -277,8 +277,7 @@ async function loadModels() {
         const res = await fetch('http://localhost:11434/api/tags');
         const data = await res.json();
         if (!data.models || data.models.length === 0) {
-            modelList.innerHTML = '<p class="text-gray-400">No models found</p>';
-            return;
+            return false;
         }
         allModels = data.models;
         if (allModels.length > 0 && !selectedModelName) {
@@ -286,26 +285,54 @@ async function loadModels() {
         }
         renderModelModal();
         updateModelButtonText();
+        return true;
     } catch {
-        modelList.innerHTML = '<p class="text-red-400">Error connecting to Ollama</p>';
+        return false;
     }
 }
 
+// Load models from provided JSON data
+function loadModelsFromData(modelsData) {
+    if (!Array.isArray(modelsData) || modelsData.length === 0) {
+        modelList.innerHTML = '<p class="text-gray-400 col-span-full text-center py-8">No models provided</p>';
+        return;
+    }
+    allModels = modelsData;
+    if (allModels.length > 0 && !selectedModelName) {
+        selectedModelName = allModels[0].name;
+    }
+    renderModelModal();
+    updateModelButtonText();
+}
+
 function renderModelModal() {
-    modelList.innerHTML = allModels.map(model => `
-        <div class="model-option ${model.name === tempSelectedModel ? 'selected' : ''}" data-model="${model.name}">
-            <input type="radio" class="model-radio" name="model" value="${model.name}" ${model.name === tempSelectedModel ? 'checked' : ''}>
-            <div class="model-info">
-                <div class="model-name">${model.name}</div>
-                <div class="model-details">
-                    ${model.details ? `<div><strong>Size:</strong> ${formatBytes(model.details.parameter_size || 0)}</div>` : ''}
-                    ${model.details?.quantization_level ? `<div><strong>Quantization:</strong> ${model.details.quantization_level}</div>` : ''}
-                    ${model.modified_at ? `<div><strong>Modified:</strong> ${new Date(model.modified_at).toLocaleDateString()}</div>` : ''}
-                    ${model.digest ? `<div><strong>Digest:</strong> <code style="font-size: 0.75rem; color: #9ca3af;">${model.digest.substring(0, 16)}...</code></div>` : ''}
+    modelList.innerHTML = allModels.map(model => {
+        const paramSize = model.details?.parameter_size || 'Unknown';
+        const quantization = model.details?.quantization_level || 'N/A';
+        const format = model.details?.format || 'N/A';
+        const family = model.details?.family || 'N/A';
+        const size = formatBytes(model.size || 0);
+        const modified = model.modified_at ? new Date(model.modified_at).toLocaleDateString() : 'Unknown';
+        const digest = model.digest ? model.digest.substring(0, 16) + '...' : 'N/A';
+        
+        return `
+            <div class="model-option ${model.name === tempSelectedModel ? 'selected' : ''}" data-model="${model.name}">
+                <input type="radio" class="model-radio" name="model" value="${model.name}" ${model.name === tempSelectedModel ? 'checked' : ''}>
+                <div class="model-info">
+                    <div class="model-name">${model.name}</div>
+                    <div class="model-details">
+                        <div><strong>Size:</strong> <span>${paramSize}</span></div>
+                        <div><strong>Quantization:</strong> <span>${quantization}</span></div>
+                        <div><strong>Format:</strong> <span>${format}</span></div>
+                        <div><strong>Family:</strong> <span>${family}</span></div>
+                        <div><strong>File Size:</strong> <span>${size}</span></div>
+                        <div><strong>Modified:</strong> <span>${modified}</span></div>
+                        <div><strong>Digest:</strong> <span><code>${digest}</code></span></div>
+                    </div>
                 </div>
             </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 
     // Add click handlers to model options
     modelList.querySelectorAll('.model-option').forEach(option => {
@@ -320,6 +347,10 @@ function renderModelModal() {
 }
 
 function formatBytes(bytes) {
+    // Handle string input (e.g., "7.6B", "3.2B")
+    if (typeof bytes === 'string') {
+        return bytes;
+    }
     if (bytes === 0) return '0 B';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -658,9 +689,98 @@ sidebarBackdrop.addEventListener('click', closeSidebar);
 });
 
 // ── Init ──────────────────────────────────────────────────────────────────────
+// Models data - can be set from external source or API
+const providedModelsData = [
+    {
+        "name": "qwen2.5-coder:7b",
+        "model": "qwen2.5-coder:7b",
+        "modified_at": "2026-04-20T03:20:55.28216134+05:30",
+        "size": 4683087561,
+        "digest": "dae161e27b0e90dd1856c8bb3209201fd6736d8eb66298e75ed87571486f4364",
+        "details": {
+            "parent_model": "",
+            "format": "gguf",
+            "family": "qwen2",
+            "families": ["qwen2"],
+            "parameter_size": "7.6B",
+            "quantization_level": "Q4_K_M"
+        }
+    },
+    {
+        "name": "deepseek-r1:7b",
+        "model": "deepseek-r1:7b",
+        "modified_at": "2026-04-20T01:37:58.314582436+05:30",
+        "size": 4683075440,
+        "digest": "755ced02ce7befdb13b7ca74e1e4d08cddba4986afdb63a480f2c93d3140383f",
+        "details": {
+            "parent_model": "",
+            "format": "gguf",
+            "family": "qwen2",
+            "families": ["qwen2"],
+            "parameter_size": "7.6B",
+            "quantization_level": "Q4_K_M"
+        }
+    },
+    {
+        "name": "gemma4:e2b-it-q4_K_M",
+        "model": "gemma4:e2b-it-q4_K_M",
+        "modified_at": "2026-04-20T01:25:45.539344824+05:30",
+        "size": 7162405886,
+        "digest": "7fbdbf8f5e45a75bb122155ed546e765b4d9c53a1285f62fd9f506baa1c5a47e",
+        "details": {
+            "parent_model": "",
+            "format": "gguf",
+            "family": "gemma4",
+            "families": ["gemma4"],
+            "parameter_size": "5.1B",
+            "quantization_level": "Q4_K_M"
+        }
+    },
+    {
+        "name": "llama3.2:latest",
+        "model": "llama3.2:latest",
+        "modified_at": "2026-04-18T14:21:47.112809315+05:30",
+        "size": 2019393189,
+        "digest": "a80c4f17acd55265feec403c7aef86be0c25983ab279d83f3bcd3abbcb5b8b72",
+        "details": {
+            "parent_model": "",
+            "format": "gguf",
+            "family": "llama",
+            "families": ["llama"],
+            "parameter_size": "3.2B",
+            "quantization_level": "Q4_K_M"
+        }
+    },
+    {
+        "name": "qwen2.5-coder:3b",
+        "model": "qwen2.5-coder:3b",
+        "modified_at": "2026-04-18T14:08:09.612893789+05:30",
+        "size": 1929912626,
+        "digest": "f72c60cabf6237b07f6e632b2c48d533cef25eda2efbd34bed21c5e9c01e6225",
+        "details": {
+            "parent_model": "",
+            "format": "gguf",
+            "family": "qwen2",
+            "families": ["qwen2"],
+            "parameter_size": "3.1B",
+            "quantization_level": "Q4_K_M"
+        }
+    }
+];
+
 function init() {
     loadSettings();
-    loadModels();
+    
+    // Try to load from API, fallback to provided data
+    loadModels().then(() => {
+        // If no models loaded from API, try provided data
+        if (!allModels || allModels.length === 0) {
+            loadModelsFromData(providedModelsData);
+        }
+    }).catch(() => {
+        // If API fails, load from provided data
+        loadModelsFromData(providedModelsData);
+    });
 
     const savedChats = localStorage.getItem('ollama_chats_v2');
     if (savedChats) {
